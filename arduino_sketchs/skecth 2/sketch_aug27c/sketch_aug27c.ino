@@ -3,92 +3,118 @@ const int LEDRED = 10;
 const int LEDGREEN = 11;
 const int LEDYELLOW = 12;
 
+// Botón en pin 9
+const int BUTTON = 9;
+
+// Estado de parpadeo
+bool blinkMode = false;
+
+// Contador de clicks del botón
+int clickCount = 0;
+
 void setup() {
-    // Config the pins as output
     pinMode(LEDRED, OUTPUT);
     pinMode(LEDYELLOW, OUTPUT);
     pinMode(LEDGREEN, OUTPUT);
-    
-    // Initialize serial
+
+    pinMode(BUTTON, INPUT_PULLUP); // botón con resistencia pull-up
+
     Serial.begin(9600);
-    
-    // Show main menu
+
     mainMenu();
+    
 }
 
 void loop() {
+    // --- CONTROL POR BOTÓN ---
+    if (digitalRead(BUTTON) == LOW) {
+        delay(200); // anti-rebote
+
+        clickCount++;
+        if (clickCount > 10) clickCount = 1; // reiniciar
+
+        ejecutarOpcion(clickCount);
+    }
+
+    // --- CONTROL POR SERIAL ---
     if (Serial.available() > 0) {
         char opt = Serial.read();
-        
-        switch (opt) {
-            case '1':
-                digitalWrite(LEDRED, HIGH);
-                Serial.println("LED RED ON");
-                break;
-            case '2':
-                digitalWrite(LEDRED, LOW);
-                Serial.println("LED RED OFF");
-                break;
-            case '3':
-                digitalWrite(LEDYELLOW, HIGH);
-                Serial.println("LED YELLOW ON");
-                break;
-            case '4':
-                digitalWrite(LEDYELLOW, LOW);
-                Serial.println("LED YELLOW OFF");
-                break;
-            case '5':
-                digitalWrite(LEDGREEN, HIGH);
-                Serial.println("LED GREEN ON");
-                break;
-            case '6':
-                digitalWrite(LEDGREEN, LOW);
-                Serial.println("LED GREEN OFF");
-                break;
-            case '7':
-                digitalWrite(LEDRED, HIGH);
-                digitalWrite(LEDGREEN, HIGH);
-                digitalWrite(LEDYELLOW, HIGH);
-                Serial.println("ALL LEDS ON");
-                break;
-            case '8':
-                digitalWrite(LEDRED, LOW);
-                digitalWrite(LEDGREEN, LOW);
-                digitalWrite(LEDYELLOW, LOW);
-                Serial.println("ALL LEDS OFF");
-                break;
-            case '9':
-                // Blink mode
-                for(int i = 0; i < 5; i++) {  // Blink 5 times
-                    digitalWrite(LEDRED, HIGH);
-                    digitalWrite(LEDGREEN, HIGH);
-                    digitalWrite(LEDYELLOW, HIGH);
-                    delay(500);
-                    digitalWrite(LEDRED, LOW);
-                    digitalWrite(LEDGREEN, LOW);
-                    digitalWrite(LEDYELLOW, LOW);
-                    delay(500);
-                }
-                Serial.println("BLINK MODE TERMINATED");
-                break;
-            case '0':
-                // Exit (turn off all)
-                digitalWrite(LEDRED, LOW);
-                digitalWrite(LEDGREEN, LOW);
-                digitalWrite(LEDYELLOW, LOW);
-                Serial.println("EXIT");
-                break;
-            case 'm':
-                // Show main menu
-                mainMenu();
-                break;
-            default:
-                Serial.println("Invalid option. Press 'm' to show the menu.");
-                break;
+
+        if (opt >= '0' && opt <= '9') {
+            int opcion = opt - '0'; // convertir char en número
+            if (opcion == 0) opcion = 10; // mapear 0 -> 10
+            ejecutarOpcion(opcion);
+        } else if (opt == 'm') {
+            mainMenu();
+        } else {
+            Serial.println("Opción inválida. Presiona 'm' para mostrar el menú.");
         }
-        
-        // Small delay to stabilize reading
-        delay(50);
+    }
+
+    // --- MODO PARPADEO ---
+    if (blinkMode) {
+        digitalWrite(LEDRED, HIGH);
+        digitalWrite(LEDGREEN, HIGH);
+        digitalWrite(LEDYELLOW, HIGH);
+        delay(500);
+
+        digitalWrite(LEDRED, LOW);
+        digitalWrite(LEDGREEN, LOW);
+        digitalWrite(LEDYELLOW, LOW);
+        delay(500);
+    }
+}
+
+void ejecutarOpcion(int opt) {
+    switch (opt) {
+        case 1:
+            digitalWrite(LEDRED, HIGH);
+            Serial.println("Opción 1 -> LED ROJO ENCENDIDO");
+            break;
+        case 2:
+            digitalWrite(LEDRED, LOW);
+            Serial.println("Opción 2 -> LED ROJO APAGADO");
+            break;
+        case 3:
+            digitalWrite(LEDYELLOW, HIGH);
+            Serial.println("Opción 3 -> LED AMARILLO ENCENDIDO");
+            break;
+        case 4:
+            digitalWrite(LEDYELLOW, LOW);
+            Serial.println("Opción 4 -> LED AMARILLO APAGADO");
+            break;
+        case 5:
+            digitalWrite(LEDGREEN, HIGH);
+            Serial.println("Opción 5 -> LED VERDE ENCENDIDO");
+            break;
+        case 6:
+            digitalWrite(LEDGREEN, LOW);
+            Serial.println("Opción 6 -> LED VERDE APAGADO");
+            break;
+        case 7:
+            digitalWrite(LEDRED, HIGH);
+            digitalWrite(LEDGREEN, HIGH);
+            digitalWrite(LEDYELLOW, HIGH);
+            Serial.println("Opción 7 -> TODOS ENCENDIDOS");
+            break;
+        case 8:
+            blinkMode = false;
+            digitalWrite(LEDRED, LOW);
+            digitalWrite(LEDGREEN, LOW);
+            digitalWrite(LEDYELLOW, LOW);
+            Serial.println("Opción 8 -> TODOS APAGADOS (y se detiene blink)");
+            break;
+        case 9:
+            blinkMode = true;
+            Serial.println("Opción 9 -> INICIO MODO PARPADEO (usar opción 8 para salir)");
+            break;
+        case 10:
+            blinkMode = false;
+            digitalWrite(LEDRED, LOW);
+            digitalWrite(LEDGREEN, LOW);
+            digitalWrite(LEDYELLOW, LOW);
+            Serial.println("Opción 10 -> SALIR (todo apagado)");
+            break;
     }
 }
 
@@ -101,9 +127,9 @@ void mainMenu() {
     Serial.println("[5]. Encender LED VERDE");
     Serial.println("[6]. Apagar LED VERDE");
     Serial.println("[7]. Encender TODOS los LEDs");
-    Serial.println("[8]. Apagar TODOS los LEDs");
+    Serial.println("[8]. Apagar TODOS los LEDs (y salir de blink)");
     Serial.println("[9]. Modo intermitente");
     Serial.println("[0]. Salir (apagar todo)");
     Serial.println("[m]. Mostrar este menú");
-    Serial.print("\nSelecciona una opción: ");
+    Serial.println("\n También puedes usar el BOTÓN (pin 9) para avanzar de 1 a 10 secuencialmente.\n");
 }
